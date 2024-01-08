@@ -1,31 +1,40 @@
 import numpy as np
-from vpython import rate, sphere, vector, color, curve, scene
+from vpython import rate, sphere, vector, color, scene, arrow, text
+from numba import njit
 
 g = 9.81
 fps = 60
 dt = 1/fps
 
-x0 = 0
-y0 = 0
-z0 = 0
-vx0 = 15
-vy0 = 10
-vz0 = 10
+x0 = 4
+y0 = 4
+z0 = 6
+vx0 = 4
+vy0 = 2
+vz0 = 1
 
-scene.camera.pos = vector(15, 5, 15)
-scene.camera.axis = vector(-15, -5, -15)
+scene.background = color.white
+scene.camera.pos = vector(15, 12, 15)
+scene.camera.axis = vector(-15, -12, -15)
 base_radius = 1
 outline = sphere(pos=vector(0, 0, 0), radius=10, color=color.gray(0.5), opacity=0.2)
 particle_1 = sphere(pos=vector(x0, y0, z0), radius=base_radius, color=color.red, r=np.array([x0, y0, z0, vx0, vy0, vz0]),
-                    positions=[], make_trail=True, retain=150)
-particles = [particle_1]
-x = curve(vector(0, 0, 0), vector(10, 0, 0), color=color.blue)
-y = curve(vector(0, 0, 0), vector(0, 10, 0), color=color.yellow)
-z = curve(vector(0, 0, 0), vector(0, 0, 10), color=color.red)
+                    positions=[], make_trail=True, retain=60)
+particle_2 = sphere(pos=vector(x0, y0, z0), radius=base_radius, color=color.red, r=np.array([x0, y0, z0, -vx0, vy0, vz0]),
+                    positions=[], make_trail=True, retain=60)
+particle_3 = sphere(pos=vector(x0, y0, z0), radius=base_radius, color=color.red, r=np.array([x0, y0, z0, vx0, -vy0, vz0]),
+                    positions=[], make_trail=True, retain=60)
+particle_4 = sphere(pos=vector(x0, y0, z0), radius=base_radius, color=color.red, r=np.array([x0, y0, z0, vx0, vy0, -vz0]),
+                    positions=[], make_trail=True, retain=60)
+
+particles = [particle_1, particle_2, particle_3, particle_4]
+x = arrow(pos=vector(0, 0, 0), axis=vector(10, 0, 0), color=color.blue, shaftwidth=0.2)
+y = arrow(pos=vector(0, 0, 0), axis=vector(0, 10, 0), color=color.yellow, shaftwidth=0.2)
+z = arrow(pos=vector(0, 0, 0), axis=vector(0, 0, 10), color=color.red, shaftwidth=0.2)
 
 
-def on_limit(x, y, z):
-    particle_distance = np.sqrt(np.square(x) + np.square(y) + np.square(z)) + base_radius
+def on_limit(x, y, z, particle):
+    particle_distance = np.sqrt(np.square(x) + np.square(y) + np.square(z)) + particle.radius
 
     if particle_distance >= outline.radius:
         return True
@@ -47,6 +56,7 @@ def adjust_particle(particle):
     particle.pos = vector(x, y, z)
 
 
+@njit(fastmath=True)
 def f_r(ri):
     x, y, z, vx, vy, vz = ri
     f_x, f_y, f_z = vx, vy, vz
@@ -57,24 +67,34 @@ def f_r(ri):
     return np.array([f_x, f_y, f_z, f_vx, f_vy, f_vz])
 
 
+@njit(fastmath=True)
+def rk4(f_r, r):
+    k1 = dt * f_r(r)
+    k2 = dt * f_r(r + k1 / 2)
+    k3 = dt * f_r(r + k2 / 2)
+    k4 = dt * f_r(r + k3)
+
+    r = r + 1 / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+    return r
+
+
 while True:
     rate(fps)
     for particle in particles:
         r = particle.r
         particle.positions.append(r)
-        k1 = dt * f_r(r)
-        k2 = dt * f_r(r + k1 / 2)
-        k3 = dt * f_r(r + k2 / 2)
-        k4 = dt * f_r(r + k3)
 
-        particle.r = r + 1 / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+        if len(particle.positions) > 300:
+            particle.positions.pop(0)
+
+        particle.r = rk4(f_r, r)
         x, y, z, vx, vy, vz = particle.r
 
-        if on_limit(x, y, z):
+        if on_limit(x, y, z, particle):
             adjust_particle(particle)
             particle_distance = particle.pos.mag
             position = vector(x, y, z)
-            normal_vector = position / particle_distance
+            normal_vector = -position / particle_distance
             v = vector(vx, vy, vz)
             projection = v.proj(normal_vector)
             v -= 2 * projection
