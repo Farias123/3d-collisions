@@ -2,12 +2,12 @@ import numpy as np
 from numba import njit
 
 
-@njit(fastmath=True)
-def rk4(f_r, r, dt):
-    k1 = dt * f_r(r)
-    k2 = dt * f_r(r + k1 / 2)
-    k3 = dt * f_r(r + k2 / 2)
-    k4 = dt * f_r(r + k3)
+# @njit(fastmath=True)
+def rk4(f_r, r, dt, **kwargs):
+    k1 = dt * f_r(r, **kwargs)
+    k2 = dt * f_r(r + k1 / 2, **kwargs)
+    k3 = dt * f_r(r + k2 / 2, **kwargs)
+    k4 = dt * f_r(r + k3, **kwargs)
 
     r = r + 1 / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
     return r
