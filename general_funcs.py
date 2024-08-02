@@ -14,11 +14,11 @@ def rk4(f_r, r, dt, **kwargs):
 
 
 def pos(particle):
-    return particle.r[:3]
+    return particle['r'][:3]
 
 
 def vel(particle):
-    return particle.r[3:6]
+    return particle['r'][3:6]
 
 
 def magnitude(vector):

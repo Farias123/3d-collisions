@@ -1,6 +1,6 @@
 import csv
 import numpy as np
-from numba import jit
+from numba import jit, njit
 from vpython import rate, sphere, vector, color, scene
 from general_funcs import magnitude, pos, rk4
 
@@ -48,20 +48,16 @@ celestial_bodies, np_bodies = general_setup(remove)
 
 
 def f_r(ri, **kwargs):
-    i = kwargs.get('index')
+    body1 = kwargs.get('celestial_body')
     x, y, z, vx, vy, vz = ri
     f_x, f_y, f_z = vx, vy, vz
     f_vx = 0
     f_vy = 0
     f_vz = 0
 
-    number_bodies = len(celestial_bodies)
-    for j in range(number_bodies):
-        # todo aplicar dtype bodies
-        if i != j:
-            body1 = celestial_bodies[i]
-            body2 = celestial_bodies[j]
-            M = body2.mass
+    for body2 in np_bodies:
+        if body1['name'] != body2['name']:
+            M = body2['mass']
             vector_d = pos(body2) - pos(body1)
             d = magnitude(vector_d)
             accell_scalar = M * G / d ** 2
@@ -76,14 +72,17 @@ def f_r(ri, **kwargs):
 
 while True:
     rate(fps)
-    for body in celestial_bodies:
-        r = body.r
-        body.positions.append(r)
 
-        if len(body.positions) > 300:
-            body.positions.pop(0)
-        i = celestial_bodies.index(body)
-        body.r = rk4(f_r, r, dt, index=i)
-        x, y, z, vx, vy, vz = body.r
+    for body in np_bodies:
+        r = body['r']
+        body['positions'].append(r)
 
-        body.pos = vector(body.r[0], body.r[1], body.r[2])
+        if len(body['positions']) > 300:
+            body['positions'].pop(0)
+        body_name = body['name']
+        body['r'] = rk4(f_r, r, dt, celestial_body=body)
+        # x, y, z, vx, vy, vz = body['r']
+
+        # manda r do numpy structured dtype array para pos do vpython para plotagem
+        vpython_body = [x for x in celestial_bodies if x.name == body['name']][0]
+        vpython_body.pos = vector(body['r'][0], body['r'][1], body['r'][2])
