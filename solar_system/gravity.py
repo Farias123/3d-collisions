@@ -70,19 +70,24 @@ def f_r(ri, **kwargs):
     return np.array([f_x, f_y, f_z, f_vx, f_vy, f_vz])
 
 
-while True:
-    rate(fps)
+def main():
+    while True:
+        rate(fps)
 
-    for body in np_bodies:
-        r = body['r']
-        body['positions'].append(r)
+        for body in np_bodies:
+            r = body['r']
+            body['positions'].append(r)
 
-        if len(body['positions']) > 300:
-            body['positions'].pop(0)
-        body_name = body['name']
-        body['r'] = rk4(f_r, r, dt, celestial_body=body)
-        # x, y, z, vx, vy, vz = body['r']
+            if len(body['positions']) > 300:
+                body['positions'].pop(0)
+            body_name = body['name']
+            body['r'] = rk4(f_r, r, dt, celestial_body=body)
+            # x, y, z, vx, vy, vz = body['r']
 
-        # manda r do numpy structured dtype array para pos do vpython para plotagem
-        vpython_body = [x for x in celestial_bodies if x.name == body['name']][0]
-        vpython_body.pos = vector(body['r'][0], body['r'][1], body['r'][2])
+            # manda r do numpy structured dtype array para pos do vpython para plotagem
+            vpython_body = [x for x in celestial_bodies if x.name == body['name']][0]
+            vpython_body.pos = vector(body['r'][0], body['r'][1], body['r'][2])
+
+
+if __name__ == '__main__':
+    main()
