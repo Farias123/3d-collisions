@@ -21,16 +21,16 @@ scene.camera.axis = vector(-15, -12, -15)
 base_radius = 1
 outline = sphere(pos=vector(0, 0, 0), radius=10, color=color.gray(0.5), opacity=0.2)
 
-dtype = np.dtype([('name', 'U10'), ('radius', 'f8'), ('positions', object), ('mass', 'f8'), ('r', object)])
+dtype = np.dtype([('name', 'U10'), ('radius', 'f8'), ('last_position', object), ('mass', 'f8'), ('r', object)])
 
 particle_1 = sphere(name='particle1', pos=vector(x0, y0, z0), radius=base_radius, color=color.red, r=np.array([x0, y0, z0, vx0, vy0, vz0]),
-                    positions=[], mass=5, make_trail=True, retain=60)
+                    mass=5, make_trail=True, retain=60)
 particle_2 = sphere(name='particle2', pos=vector(-x0, y0, z0), radius=base_radius, color=color.red, r=np.array([-x0, y0, z0, -vx0, vy0, vz0]),
-                    positions=[], mass=1, make_trail=True, retain=60)
+                    mass=1, make_trail=True, retain=60)
 particle_3 = sphere(name='particle3', pos=vector(x0, -y0, z0), radius=base_radius, color=color.red, r=np.array([x0, -y0, z0, vx0, -vy0, vz0]),
-                    positions=[], mass=1, make_trail=True, retain=60)
+                    mass=1, make_trail=True, retain=60)
 particle_4 = sphere(name='particle4', pos=vector(x0, y0, -z0), radius=base_radius, color=color.red, r=np.array([x0, y0, -z0, vx0, vy0, -vz0]),
-                    positions=[], mass=1, make_trail=True, retain=60)
+                    mass=1, make_trail=True, retain=60)
 
 vpython_particles = [particle_1, particle_2, particle_3, particle_4]
 np_particles = []
@@ -53,34 +53,17 @@ def on_limit(x, y, z, particle):
 
 
 def adjust_border(particle):
-    x, y, z = particle['r'][:3]
-    particle_distance = np.sqrt(np.square(x) + np.square(y) + np.square(z)) + particle['radius']
-    outer_radius = outline.radius
-    i = -1
-
-    while particle_distance >= outer_radius:
-        i -= 1
-        particle_old_r = particle['positions'][i]
-        x, y, z = particle_old_r[:3]
-        particle_distance = np.sqrt(np.square(x) + np.square(y) + np.square(z)) + particle['radius']
-
+    # todo (x-x borda, y-y borda, z-z borda)
+    particle_old_r = particle['last_position']
+    x, y, z = particle_old_r[:3]
     particle['r'][:3] = x, y, z
 
 
 def adjust_collision(p1, p2):
-    x1, y1, z1 = p1['r'][:3]
-    x2, y2, z2 = p2['r'][:3]
-
-    distance_particles = np.sqrt(np.square(x2 - x1) + np.square(y2 - y1) + np.square(z2 - z1))
-    i = -1
-
-    while distance_particles <= p1['radius'] + p2['radius']:
-        i -= 1
-        p1_old_r = p1['positions'][i]
-        p2_old_r = p2['positions'][i]
-        x1, y1, z1 = p1_old_r[:3]
-        x2, y2, z2 = p2_old_r[:3]
-        distance_particles = np.sqrt(np.square(x2 - x1) + np.square(y2 - y1) + np.square(z2 - z1))
+    p1_old_r = p1['last_position']
+    p2_old_r = p2['last_position']
+    x1, y1, z1 = p1_old_r[:3]
+    x2, y2, z2 = p2_old_r[:3]
 
     p1['r'][:3] = x1, y1, z1
     p2['r'][:3] = x2, y2, z2
@@ -101,10 +84,7 @@ while True:
     rate(fps)
     for particle1 in particles:
         r = particle1['r']
-        particle1['positions'].append(r)
-
-        if len(particle1['positions']) > 300:
-            particle1['positions'].pop(0)
+        particle1['last_position'] = r
 
         particle1['r'] = rk4(f_r, r, dt)
         x, y, z, vx, vy, vz = particle1['r']
