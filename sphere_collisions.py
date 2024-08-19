@@ -52,21 +52,10 @@ def on_limit(x, y, z, particle):
     return False
 
 
-def adjust_border(particle):
-    # todo (x-x borda, y-y borda, z-z borda)
+def adjust_collision(particle):
     particle_old_r = particle['last_position']
     x, y, z = particle_old_r[:3]
     particle['r'][:3] = x, y, z
-
-
-def adjust_collision(p1, p2):
-    p1_old_r = p1['last_position']
-    p2_old_r = p2['last_position']
-    x1, y1, z1 = p1_old_r[:3]
-    x2, y2, z2 = p2_old_r[:3]
-
-    p1['r'][:3] = x1, y1, z1
-    p2['r'][:3] = x2, y2, z2
 
 
 @njit(fastmath=True)
@@ -95,7 +84,8 @@ while True:
                 distance_vector = pos(particle2) - pos(particle1)
                 distance = magnitude(distance_vector)
                 if distance <= particle1['radius'] + particle2['radius']:
-                    adjust_collision(particle1, particle2)
+                    adjust_collision(particle1)
+                    adjust_collision(particle2)
                     distance_vector = pos(particle2) - pos(particle1)
                     m1, m2 = particle1['mass'], particle2['mass']
                     v1 = vel(particle1)
@@ -110,7 +100,7 @@ while True:
 
         if on_limit(x, y, z, particle1):
             # border collision
-            adjust_border(particle1)
+            adjust_collision(particle1)
             position = pos(particle1)
             scalar_distance = magnitude(position)
             normal_vector = -position / scalar_distance
