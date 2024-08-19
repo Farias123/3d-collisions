@@ -1,3 +1,4 @@
+# Not scientifically accurate
 import numpy as np
 from vpython import rate, sphere, vector, color, scene, arrow
 from numba import njit
@@ -46,10 +47,7 @@ z = arrow(pos=vector(0, 0, 0), axis=vector(0, 0, 10), color=color.red, shaftwidt
 
 def on_limit(x, y, z, particle):
     particle_distance = np.sqrt(np.square(x) + np.square(y) + np.square(z)) + particle['radius']
-
-    if particle_distance >= outline.radius:
-        return True
-    return False
+    return bool(particle_distance >= outline.radius)
 
 
 def adjust_collision(particle):
@@ -80,6 +78,7 @@ while True:
 
         for particle2 in particles:
             # sphere on sphere collision
+            # TODO not scientifically accurate
             if particle1['name'] != particle2['name']:
                 distance_vector = pos(particle2) - pos(particle1)
                 distance = magnitude(distance_vector)
